@@ -93,38 +93,12 @@ Hydra will create output logs and results under `experiments/hydra_outputs/`.
 
 
 
-Our proposed algorithm is SequOOL on \hat{A} and  Benchmarka are, Direct, SequOOL, Dual Annealing, RESOO, HESBO, SOO, CMA-ES, REMBO, Bayesian Optimization, Random Search.
-
-- Direct (benchmarks)
-- SequOOL (sequool_nn)
-- Dual Annealing (benchmarks)
-- RESOO (resoo)
-- HESBO 
-- SOO (soo)
-- CMA-ES (benchmarks)
-- SequOOL on \hat{A} (dimension_reduction)
-- REMBO (benchmarks)
-- Random Search (dimension_reduction_random_search)
-- Bayesian Optimization (benchmarks)
 
 
 
 
 
 
-
-
-python3 scripts/coco_test_f_main_hydra.py --multirun method=hesbo,rembo2 function_name=rosenbrock hydra/launcher=joblib
-
-
-python3 main.py --multirun method=dimension_reduction,resoo,rembo,sequool,direct,dual_annealing,random_search,cma_es,soo,hesbo,bayesian_opt function_name=branin hydra/launcher=joblib
-
-
-
-
-python3 scripts/coco_test_f_main_hydra.py --multirun method=rembo2,hesbo function_name=hartman6,styblinski_tang,rosenbrock hydra/launcher=joblib
-
-python3 scripts/coco_test_f_main_hydra.py --multirun function_name=sharp_ridge,rastrigin_rotated,sphere_rotated,different_powers,rosenbrock,styblinski_tang,hartmann6,branin,ellipsoid_rotated,custom_f1,sharp_ridge hydra/launcher=joblib method=dimension_reduction,resoo,rembo2,sequool,direct,dual_annealing,random_search,cma_es,soo,hesbo
 
 
 
