@@ -1,0 +1,24 @@
+# hyperparameter_config.yaml
+
+NUM_HIDDEN:
+  type: choice
+  values: [500, 1000, 2000, 3000]
+
+LEARNING_RATE:
+  type: loguniform
+  lower: 1e-4
+  upper: 1e-1
+
+WEIGHT_DECAY:
+  type: loguniform
+  lower: 1e-3
+  upper: 1e-2
+
+GAMMA:
+  type: uniform
+  lower: 0.9
+  upper: 0.99
+
+STEP_SIZE:
+  type: choice
+  values: [500, 1000, 2000]

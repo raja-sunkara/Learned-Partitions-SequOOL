@@ -1,0 +1,100 @@
+# config.yaml
+methods:
+  - learned_subspace
+  - resoo
+  - rembo
+  - sequool
+  - direct
+  - dual_annealing
+  - subspace_random_search
+  - cma_es
+  - soo
+  - hesbo
+
+defaults:
+  - _self_
+  - hyperparameter: hyperparameter_config  # Include the new hyperparameter config file
+
+
+
+# # optimization parameters
+method: bayesian_opt #dimension_reduction_random_search #resoo #hesbo  #rembo2 #hesbo #rembo #dimension_reduction  #resoo #dimension_reduction #sequool #sequool #direct #dual_annealing #random_search #cma_es #random_search #dual_annealing #direct #resoo #dimension_reduction #sequool
+
+num_exp: 2000
+init_samples: 10
+#function dimensions
+n_dim: 5
+low_dim: 2
+# Function selection
+function_category: coco_functions
+function_name: custom_f1 #rastrigin_rotated sphere_rotated different_powers rosenbrock hartmann6 styblinski_tang branin ellipsoid_rotated sharp_ridge #hartmann6 #styblinski_tang #rosenbrock #branin #custom_f1  #attractive_sector #sharp_ridge #ellipsoid_rotated #different_powers #rastrigin_rotated # sphere_rotated  #sphere_rotated #different_powers #ellipsoid_rotated #rastrigin_rotated #ellipsoid_rotated #branin #custom_f1 #rastrigin_rotated #custom_f1
+
+
+
+
+# Experiment settings
+num_of_trials: 100
+seed: 123
+
+# lineage for budget algorithm
+num_lineage_steps: 50   # choose, 2, to perform only one lineage step 
+
+# Optimization bounds
+int_opt: [-5.0, 5.0]
+
+
+# parameters for different DFO methods
+dfo_method_args:
+  dimension_reduction:
+    use_true_subspace: False
+    neural_network: False    # which subspace method to use, False mean SIBO
+    use_SIBO: True
+    SIBO: 
+      m_phi: 4
+      m_x: 100
+
+  resoo:
+    eta: 0.01
+
+  rembo:
+    eta: 0.01
+
+  all_dim_look_ahead:
+    initial_samples: 1500
+
+    hyper_search_queries: 20
+
+    num_point_for_minimum: 1e4   # number of points to evaluate for minimum search
+
+    # frequence of neural network training
+    neural_network_training_freq: 3
+    train_till_height: 10
+
+  hesbo:
+    variance: 0.0
+
+
+# random seed configuration.
+torch_seed:
+  lower_bound: 0
+  upper_bound: 1e8
+
+numpy_seed:
+  lower_bound: 123
+  upper_bound: 1e8   # we do not use upper_bound. we use child spawn to generate new seeds using lower_bound
+
+# Hydra-specific configurations. run.dir is for the single experiment.
+# sweep.dir is for the multirun.
+hydra:
+  run:
+    dir: experiments/hydra_outputs/${now:%Y-%m-%d_%H-%M-%S}_${method}
+  sweep:
+  #  dir: multirun/${now:%Y-%m-%d_%H-%M-%S}_${function_name}
+  #  subdir: ${method}
+    # for a particular method
+    dir: multirun/${now:%Y-%m-%d_%H-%M-%S}_${method}
+    subdir: ${function_name}
+
+  # launcher:
+  #   n_jobs: 4  # or however many parallel jobs you want to run
+
