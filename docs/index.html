@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adaptive Partitioning Schemes for Optimistic Optimization</title>
+<meta name="description" content="Learn the partition, not just the surrogate: SequOOL on a learned low-dimensional subspace. Sunkara and Tripathy, ICML 2025.">
+<meta property="og:title" content="Adaptive Partitioning Schemes for Optimistic Optimization (ICML 2025)">
+<meta property="og:description" content="Partition-based optimizers waste splits on directions a function ignores. Learn the directions first, then partition in them.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3f6f5;
+    --sheet: #ffffff;
+    --ink: #17212b;
+    --ink-2: #4a5763;
+    --rule: #d6dedb;
+    --grid: #e3e9e7;
+    --learned: #2a78d6;
+    --sequool: #eb6834;
+    --learned-wash: rgba(42, 120, 214, 0.10);
+    --sequool-wash: rgba(235, 104, 52, 0.10);
+    --code-bg: #e9eeec;
+    --measure: 66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121a21; --sheet: #182129; --ink: #e5ebef; --ink-2: #a9b5bf;
+      --rule: #2c3842; --grid: #222d36; --learned: #3987e5; --sequool: #d95926;
+      --learned-wash: rgba(57, 135, 229, 0.16); --sequool-wash: rgba(217, 89, 38, 0.16);
+      --code-bg: #1f2a33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #121a21; --sheet: #182129; --ink: #e5ebef; --ink-2: #a9b5bf;
+    --rule: #2c3842; --grid: #222d36; --learned: #3987e5; --sequool: #d95926;
+    --learned-wash: rgba(57, 135, 229, 0.16); --sequool-wash: rgba(217, 89, 38, 0.16);
+    --code-bg: #1f2a33;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Literata", Georgia, serif; font-size: 1.0625rem; line-height: 1.65;
+    font-optical-sizing: auto;
+  }
+  main { padding: 3.5rem 1rem 4rem; }
+  .col { max-width: var(--measure); margin: 0 auto; }
+  .wide { max-width: 62rem; margin: 0 auto; }
+
+  h1 {
+    font-size: clamp(1.9rem, 4.6vw, 2.9rem); line-height: 1.12; font-weight: 700;
+    letter-spacing: -0.012em; margin: 0 0 1.1rem; max-width: 22ch;
+  }
+  h2 { font-size: 1.35rem; line-height: 1.3; font-weight: 600; margin: 3rem 0 0.75rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--learned); text-underline-offset: 0.18em; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--learned); outline-offset: 3px; border-radius: 2px; }
+
+  .byline { color: var(--ink-2); margin: 0 0 1.5rem; }
+  .byline strong { color: var(--ink); font-weight: 600; }
+
+  .links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 2.5rem; padding: 0; list-style: none; }
+  .links a {
+    display: inline-block; padding: 0.4rem 0.85rem; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--sheet); color: var(--ink); text-decoration: none; font-size: 0.95rem;
+  }
+  .links a:hover { border-color: var(--learned); color: var(--learned); }
+
+  /* The memorable element: the two partitions, drawn from real SequOOL runs. */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 0 0 0.75rem; }
+  .panel { margin: 0; }
+  .panel svg { display: block; width: 100%; height: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; }
+  .panel figcaption { margin-top: 0.6rem; font-size: 0.95rem; color: var(--ink-2); line-height: 1.5; }
+  .panel figcaption b { color: var(--ink); font-weight: 600; }
+  .key { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 2px; margin-right: 0.35em; vertical-align: -0.05em; }
+  .p-axis .cell { fill: var(--sequool-wash); stroke: var(--sequool); stroke-width: 0.6; }
+  .p-axis .cell.fine { fill: var(--sequool); fill-opacity: 0.35; }
+  .p-learned .cell { fill: var(--learned-wash); stroke: var(--learned); stroke-width: 0.45; }
+  .p-learned .cell.fine { fill: var(--learned); fill-opacity: 0.35; }
+  .ridge { stroke: var(--ink); stroke-width: 1.4; stroke-dasharray: 5 4; }
+  .compare-note { font-size: 0.95rem; color: var(--ink-2); margin: 0 auto 0; }
+
+  .lede { font-size: 1.15rem; line-height: 1.6; margin-top: 2.5rem; }
+
+  ol.steps { padding-left: 1.4rem; margin: 0 0 1rem; }
+  ol.steps li { margin-bottom: 0.6rem; padding-left: 0.25rem; }
+
+  figure.result { margin: 1.25rem 0 0.5rem; }
+  figure.result img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 4px; background: #fff; }
+  figure.result figcaption { font-size: 0.95rem; color: var(--ink-2); margin-top: 0.6rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 0.5rem 0 1rem; font-size: 0.97rem; }
+  th, td { text-align: left; padding: 0.5rem 0.6rem 0.5rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  pre, code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.86rem; }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 3px; }
+  pre { background: var(--code-bg); padding: 0.9rem 1rem; border-radius: 6px; overflow-x: auto; line-height: 1.55; margin: 0 0 1rem; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre.wrap { white-space: pre-wrap; word-break: break-all; }
+
+  .bib { position: relative; }
+  .bib button {
+    position: absolute; top: 0.55rem; right: 0.55rem; font: inherit; font-size: 0.85rem;
+    padding: 0.25rem 0.7rem; border-radius: 5px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); cursor: pointer;
+  }
+  .bib button:hover { border-color: var(--learned); }
+
+  footer { color: var(--ink-2); font-size: 0.9rem; border-top: 1px solid var(--rule); padding-top: 1.25rem; margin-top: 3.5rem; }
+
+  @media (max-width: 640px) {
+    main { padding-top: 2rem; }
+    .compare { grid-template-columns: 1fr; gap: 1.75rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="col">
+    <h1>Adaptive Partitioning Schemes for Optimistic Optimization</h1>
+    <p class="byline"><strong>Raja Sunkara</strong> and <strong>Ardhendu Tripathy</strong><br>International Conference on Machine Learning (ICML), 2025</p>
+    <ul class="links">
+      <li><a href="https://proceedings.mlr.press/v267/sunkara25a.html">Paper</a></li>
+      <li><a href="https://arxiv.org/abs/2610.04039">arXiv</a></li>
+      <li><a href="https://github.com/raja-sunkara/Learned-Partitions-SequOOL">Code</a></li>
+      <li><a href="https://colab.research.google.com/github/raja-sunkara/Learned-Partitions-SequOOL/blob/main/notebooks/demo.ipynb">Colab demo</a></li>
+      <li><a href="https://openreview.net/forum?id=rA2P4H7Dep">OpenReview</a></li>
+    </ul>
+  </div>
+
+  <div class="wide">
+    <div class="compare">
+      <figure class="panel p-axis">
+        <svg viewBox="0 0 300 300" role="img" aria-labelledby="axis-title">
+          <title id="axis-title">Axis-aligned SequOOL cells on a function that varies only along the diagonal; small boxes pile up along the ridge.</title>
+          <rect x="0.00" y="200.00" width="100.00" height="100.00" class="cell"/>
+<rect x="0.00" y="100.00" width="100.00" height="100.00" class="cell"/>
+<rect x="100.00" y="200.00" width="100.00" height="100.00" class="cell"/>
+<rect x="0.00" y="0.00" width="33.33" height="100.00" class="cell"/>
+<rect x="33.33" y="0.00" width="33.33" height="100.00" class="cell"/>
+<rect x="66.67" y="0.00" width="33.33" height="100.00" class="cell"/>
+<rect x="100.00" y="100.00" width="33.33" height="100.00" class="cell"/>
+<rect x="133.33" y="100.00" width="33.33" height="100.00" class="cell"/>
+<rect x="166.67" y="100.00" width="33.33" height="100.00" class="cell"/>
+<rect x="166.67" y="0.00" width="33.33" height="100.00" class="cell"/>
+<rect x="200.00" y="200.00" width="33.33" height="100.00" class="cell"/>
+<rect x="233.33" y="200.00" width="33.33" height="100.00" class="cell"/>
+<rect x="266.67" y="200.00" width="33.33" height="100.00" class="cell"/>
+<rect x="266.67" y="100.00" width="33.33" height="100.00" class="cell"/>
+<rect x="200.00" y="0.00" width="33.33" height="100.00" class="cell"/>
+<rect x="233.33" y="0.00" width="33.33" height="100.00" class="cell"/>
+<rect x="266.67" y="0.00" width="33.33" height="100.00" class="cell"/>
+<rect x="100.00" y="66.67" width="33.33" height="33.33" class="cell fine"/>
+<rect x="100.00" y="33.33" width="33.33" height="33.33" class="cell"/>
+<rect x="100.00" y="0.00" width="33.33" height="33.33" class="cell"/>
+<rect x="133.33" y="33.33" width="33.33" height="33.33" class="cell"/>
+<rect x="133.33" y="0.00" width="33.33" height="33.33" class="cell"/>
+<rect x="200.00" y="166.67" width="33.33" height="33.33" class="cell fine"/>
+<rect x="200.00" y="100.00" width="33.33" height="33.33" class="cell fine"/>
+<rect x="233.33" y="133.33" width="33.33" height="33.33" class="cell"/>
+<rect x="233.33" y="100.00" width="33.33" height="33.33" class="cell"/>
+<rect x="133.33" y="66.67" width="11.11" height="33.33" class="cell fine"/>
+<rect x="144.44" y="66.67" width="11.11" height="33.33" class="cell fine"/>
+<rect x="200.00" y="133.33" width="11.11" height="33.33" class="cell fine"/>
+<rect x="211.11" y="133.33" width="11.11" height="33.33" class="cell fine"/>
+<rect x="233.33" y="166.67" width="11.11" height="33.33" class="cell fine"/>
+<rect x="244.44" y="166.67" width="11.11" height="33.33" class="cell fine"/>
+<rect x="255.56" y="166.67" width="11.11" height="33.33" class="cell fine"/>
+<rect x="155.56" y="88.89" width="11.11" height="11.11" class="cell fine"/>
+<rect x="155.56" y="66.67" width="11.11" height="11.11" class="cell fine"/>
+<rect x="222.22" y="155.56" width="11.11" height="11.11" class="cell fine"/>
+<rect x="222.22" y="133.33" width="11.11" height="11.11" class="cell fine"/>
+<rect x="159.26" y="77.78" width="3.70" height="11.11" class="cell fine"/>
+<rect x="162.96" y="77.78" width="3.70" height="11.11" class="cell fine"/>
+<rect x="222.22" y="144.44" width="3.70" height="11.11" class="cell fine"/>
+<rect x="225.93" y="144.44" width="3.70" height="11.11" class="cell fine"/>
+<rect x="229.63" y="144.44" width="3.70" height="11.11" class="cell fine"/>
+<rect x="155.56" y="85.19" width="3.70" height="3.70" class="cell fine"/>
+<rect x="155.56" y="77.78" width="3.70" height="3.70" class="cell fine"/>
+<rect x="155.56" y="81.48" width="1.23" height="3.70" class="cell fine"/>
+<rect x="158.02" y="81.48" width="1.23" height="3.70" class="cell fine"/>
+<rect x="156.79" y="83.95" width="1.23" height="1.23" class="cell fine"/>
+<rect x="156.79" y="81.48" width="1.23" height="1.23" class="cell fine"/>
+<rect x="156.79" y="82.72" width="0.41" height="1.23" class="cell fine"/>
+<rect x="157.61" y="82.72" width="0.41" height="1.23" class="cell fine"/>
+<rect x="157.20" y="83.54" width="0.41" height="0.41" class="cell fine"/>
+<rect x="157.20" y="82.72" width="0.41" height="0.41" class="cell fine"/>
+<rect x="157.20" y="83.13" width="0.14" height="0.41" class="cell fine"/>
+<rect x="157.34" y="83.13" width="0.14" height="0.41" class="cell fine"/>
+<rect x="157.48" y="83.40" width="0.14" height="0.14" class="cell fine"/>
+<rect x="157.48" y="83.26" width="0.14" height="0.14" class="cell fine"/>
+<rect x="157.48" y="83.13" width="0.14" height="0.14" class="cell fine"/>
+          <line x1="0.0" y1="-74.2" x2="300.0" y2="225.8" class="ridge"/>
+        </svg>
+        <figcaption><span class="key" style="background:var(--sequool)"></span><b>Fixed, axis-aligned partition.</b> Every split cuts one coordinate in three, so cells tile the whole ridge with small boxes.</figcaption>
+      </figure>
+      <figure class="panel p-learned">
+        <svg viewBox="0 0 300 300" role="img" aria-labelledby="learned-title">
+          <title id="learned-title">SequOOL on a learned partition: strips cut across the ridge direction and narrow straight onto it.</title>
+          <defs><clipPath id="sq"><rect x="0" y="0" width="300" height="300"/></clipPath></defs>
+          <g clip-path="url(#sq)">
+          <polygon points="318.20,618.20 -318.20,-18.20 -284.86,-51.53 351.53,584.86" class="cell"/>
+<polygon points="351.53,584.86 -284.86,-51.53 -251.53,-84.86 384.86,551.53" class="cell"/>
+<polygon points="384.86,551.53 -251.53,-84.86 -218.20,-118.20 418.20,518.20" class="cell"/>
+<polygon points="418.20,518.20 -218.20,-118.20 -207.09,-129.31 429.31,507.09" class="cell"/>
+<polygon points="429.31,507.09 -207.09,-129.31 -195.98,-140.42 440.42,495.98" class="cell"/>
+<polygon points="440.42,495.98 -195.98,-140.42 -184.86,-151.53 451.53,484.86" class="cell"/>
+<polygon points="451.53,484.86 -184.86,-151.53 -173.75,-162.64 462.64,473.75" class="cell"/>
+<polygon points="462.64,473.75 -173.75,-162.64 -162.64,-173.75 473.75,462.64" class="cell"/>
+<polygon points="473.75,462.64 -162.64,-173.75 -151.53,-184.86 484.86,451.53" class="cell"/>
+<polygon points="529.31,407.09 -107.09,-229.31 -95.98,-240.42 540.42,395.98" class="cell"/>
+<polygon points="540.42,395.98 -95.98,-240.42 -84.86,-251.53 551.53,384.86" class="cell"/>
+<polygon points="551.53,384.86 -84.86,-251.53 -73.75,-262.64 562.64,373.75" class="cell"/>
+<polygon points="562.64,373.75 -73.75,-262.64 -62.64,-273.75 573.75,362.64" class="cell"/>
+<polygon points="573.75,362.64 -62.64,-273.75 -51.53,-284.86 584.86,351.53" class="cell"/>
+<polygon points="584.86,351.53 -51.53,-284.86 -40.42,-295.98 595.98,340.42" class="cell"/>
+<polygon points="595.98,340.42 -40.42,-295.98 -29.31,-307.09 607.09,329.31" class="cell"/>
+<polygon points="607.09,329.31 -29.31,-307.09 -18.20,-318.20 618.20,318.20" class="cell"/>
+<polygon points="484.86,451.53 -151.53,-184.86 -147.83,-188.57 488.57,447.83" class="cell"/>
+<polygon points="488.57,447.83 -147.83,-188.57 -144.12,-192.27 492.27,444.12" class="cell"/>
+<polygon points="492.27,444.12 -144.12,-192.27 -140.42,-195.98 495.98,440.42" class="cell"/>
+<polygon points="495.98,440.42 -140.42,-195.98 -136.72,-199.68 499.68,436.72" class="cell"/>
+<polygon points="510.79,425.61 -125.61,-210.79 -121.90,-214.49 514.49,421.90" class="cell"/>
+<polygon points="514.49,421.90 -121.90,-214.49 -118.20,-218.20 518.20,418.20" class="cell"/>
+<polygon points="518.20,418.20 -118.20,-218.20 -114.49,-221.90 521.90,414.49" class="cell"/>
+<polygon points="521.90,414.49 -114.49,-221.90 -110.79,-225.61 525.61,410.79" class="cell"/>
+<polygon points="525.61,410.79 -110.79,-225.61 -107.09,-229.31 529.31,407.09" class="cell"/>
+<polygon points="499.68,436.72 -136.72,-199.68 -135.48,-200.91 500.91,435.48" class="cell"/>
+<polygon points="500.91,435.48 -135.48,-200.91 -134.25,-202.15 502.15,434.25" class="cell"/>
+<polygon points="502.15,434.25 -134.25,-202.15 -133.01,-203.38 503.38,433.01" class="cell"/>
+<polygon points="503.38,433.01 -133.01,-203.38 -131.78,-204.62 504.62,431.78" class="cell"/>
+<polygon points="507.09,429.31 -129.31,-207.09 -128.07,-208.32 508.32,428.07" class="cell"/>
+<polygon points="508.32,428.07 -128.07,-208.32 -126.84,-209.56 509.56,426.84" class="cell"/>
+<polygon points="509.56,426.84 -126.84,-209.56 -125.61,-210.79 510.79,425.61" class="cell"/>
+<polygon points="504.62,431.78 -131.78,-204.62 -131.37,-205.03 505.03,431.37" class="cell"/>
+<polygon points="505.85,430.54 -130.54,-205.85 -130.13,-206.26 506.26,430.13" class="cell fine"/>
+<polygon points="506.26,430.13 -130.13,-206.26 -129.72,-206.68 506.68,429.72" class="cell"/>
+<polygon points="506.68,429.72 -129.72,-206.68 -129.31,-207.09 507.09,429.31" class="cell"/>
+<polygon points="505.03,431.37 -131.37,-205.03 -131.23,-205.17 505.17,431.23" class="cell fine"/>
+<polygon points="505.17,431.23 -131.23,-205.17 -131.09,-205.30 505.30,431.09" class="cell fine"/>
+<polygon points="505.44,430.96 -130.96,-205.44 -130.82,-205.58 505.58,430.82" class="cell fine"/>
+<polygon points="505.58,430.82 -130.82,-205.58 -130.68,-205.72 505.72,430.68" class="cell fine"/>
+<polygon points="505.72,430.68 -130.68,-205.72 -130.54,-205.85 505.85,430.54" class="cell fine"/>
+<polygon points="505.35,431.05 -131.05,-205.35 -131.00,-205.40 505.40,431.00" class="cell fine"/>
+<polygon points="505.40,431.00 -131.00,-205.40 -130.96,-205.44 505.44,430.96" class="cell fine"/>
+<polygon points="505.30,431.09 -131.09,-205.30 -131.08,-205.32 505.32,431.08" class="cell fine"/>
+<polygon points="505.33,431.06 -131.06,-205.33 -131.05,-205.35 505.35,431.05" class="cell fine"/>
+<polygon points="505.32,431.07 -131.07,-205.32 -131.07,-205.33 505.33,431.07" class="cell fine"/>
+<polygon points="505.33,431.07 -131.07,-205.33 -131.06,-205.33 505.33,431.06" class="cell fine"/>
+<polygon points="505.32,431.08 -131.08,-205.32 -131.08,-205.32 505.32,431.08" class="cell fine"/>
+<polygon points="505.32,431.07 -131.07,-205.32 -131.07,-205.32 505.32,431.07" class="cell fine"/>
+<polygon points="505.32,431.07 -131.07,-205.32 -131.07,-205.32 505.32,431.07" class="cell fine"/>
+<polygon points="505.32,431.07 -131.07,-205.32 -131.07,-205.32 505.32,431.07" class="cell fine"/>
+<polygon points="505.32,431.08 -131.08,-205.32 -131.08,-205.32 505.32,431.08" class="cell fine"/>
+<polygon points="505.32,431.08 -131.08,-205.32 -131.08,-205.32 505.32,431.08" class="cell fine"/>
+<polygon points="505.32,431.08 -131.08,-205.32 -131.08,-205.32 505.32,431.08" class="cell fine"/>
+<polygon points="505.32,431.08 -131.08,-205.32 -131.07,-205.32 505.32,431.07" class="cell fine"/>
+<polygon points="505.32,431.07 -131.07,-205.32 -131.07,-205.32 505.32,431.07" class="cell fine"/>
+          </g>
+          <line x1="0.0" y1="-74.2" x2="300.0" y2="225.8" class="ridge"/>
+        </svg>
+        <figcaption><span class="key" style="background:var(--learned)"></span><b>Learned partition.</b> Cells are cut only along the direction the function depends on, so every split moves toward the ridge.</figcaption>
+      </figure>
+    </div>
+    <p class="compare-note">Both panels are real SequOOL runs with the same 57 evaluations on <i>f</i>(<i>x</i>) = &minus;|<i>a</i>&middot;<i>x</i> &minus; <i>c</i>|, whose maximizers lie on the dashed line. Darker cells are the most refined. The axis-aligned run ends 2&times;10<sup>&minus;4</sup> from the optimum; the learned one reaches it to machine precision.</p>
+  </div>
+
+  <div class="col">
+    <p class="lede">Many expensive black-box functions in many dimensions really depend on only a few directions. Optimistic optimizers such as DiRect, SOO and SequOOL search by splitting the domain into boxes along the coordinate axes, so most of their splits go to directions the function ignores. We learn those directions from a few evaluations, then let SequOOL split in them.</p>
+
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><b>Learn the directions.</b> Fit a small neural network to random evaluations (or estimate gradients by finite differences) and take the top singular directions. This gives an estimate <i>&Acirc;</i> of the <i>m</i>-dimensional subspace that <i>f</i> varies in.</li>
+      <li><b>Build the partition in that subspace.</b> Cells are boxes in the coordinates <i>z</i> = <i>&Acirc;x</i>, large enough to contain the optimum even when <i>&Acirc;</i> is slightly off.</li>
+      <li><b>Run SequOOL on it.</b> Trisect cells along one learned direction per depth and open the best cells at each depth, as usual.</li>
+    </ol>
+    <p>For multi-index functions <i>f</i>(<i>x</i>) = <i>g</i>(<i>Ax</i>) with an <i>m</i>-dimensional subspace in <i>d</i> dimensions, regret improves from <i>&Otilde;</i>(<i>n</i><sup>&minus;1/<i>&eta;</i></sup>) for SequOOL to <i>&Otilde;</i>(<i>n</i><sup>&minus;<i>&beta;</i>/<i>&eta;</i></sup>) with <i>&beta;</i> = 1 + (<i>d</i> &minus; <i>m</i>)/(2<i>m</i> &minus; 1), and the guarantee holds with an estimated subspace.</p>
+
+    <h2>What it looks like in practice</h2>
+    <figure class="result">
+      <img src="regret.png" alt="Regret against function evaluations on a 20-dimensional function with a 2-dimensional active subspace. The learned partition falls to about 1e-24 by 1,600 evaluations; SequOOL reaches about 1e-11 at 2,000." width="944" height="520">
+      <figcaption>A 20-D function that depends on 2 hidden directions, 2,000 evaluations, median of 5 random rotations. From the <a href="https://colab.research.google.com/github/raja-sunkara/Learned-Partitions-SequOOL/blob/main/notebooks/demo.ipynb">Colab demo</a>, which runs in about a minute.</figcaption>
+    </figure>
+    <p>The gain is largest when the hidden function is well-behaved near its optimum. On the same setup, the demo also reports where it does not help:</p>
+    <table>
+      <thead><tr><th>Hidden 2-D function</th><th>Learned partition vs. SequOOL, 5 rotations</th></tr></thead>
+      <tbody>
+        <tr><td>Sharp bowl, |<i>z</i>|<sup>1.5</sup></td><td>Better on 5 of 5; median 8.5&times;10<sup>&minus;25</sup> vs 9.7&times;10<sup>&minus;12</sup></td></tr>
+        <tr><td>Sphere</td><td>Better on 5 of 5; median 3.1&times;10<sup>&minus;33</sup> vs 1.0&times;10<sup>&minus;15</sup></td></tr>
+        <tr><td>Rastrigin, many local minima</td><td>Worse on 4 of 5; often settles in a neighboring minimum</td></tr>
+        <tr><td>Rosenbrock, curved valley</td><td>Mixed, better on 2 of 5</td></tr>
+      </tbody>
+    </table>
+    <p>The paper also applies the method to activation-aware weight quantization of OPT-1.3B, posed as a 72-dimensional black-box problem.</p>
+
+    <h2>Use it</h2>
+    <pre class="wrap"><code>pip install "git+https://github.com/raja-sunkara/Learned-Partitions-SequOOL.git#subdirectory=package"</code></pre>
+<pre><code>from learned_partitions import minimize
+
+res = minimize(f, bounds=[(-1, 1)] * 50, budget=1000)
+res.x, res.fun, res.m   # best point, value, subspace dim</code></pre>
+    <p>Only numpy and scipy are required. The <a href="https://github.com/raja-sunkara/Learned-Partitions-SequOOL">repository</a> also has the code for every experiment in the paper.</p>
+
+    <h2>Citation</h2>
+    <div class="bib">
+      <button type="button" id="copy-bib">Copy BibTeX</button>
+<pre><code id="bibtex">@InProceedings{pmlr-v267-sunkara25a,
+  title     = {Adaptive Partitioning Schemes for Optimistic Optimization},
+  author    = {Sunkara, Raja and Tripathy, Ardhendu},
+  booktitle = {Proceedings of the 42nd International Conference on Machine Learning},
+  pages     = {58029--58064},
+  year      = {2025},
+  volume    = {267},
+  series    = {Proceedings of Machine Learning Research},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v267/sunkara25a.html}
+}</code></pre>
+    </div>
+
+    <footer>Supported by the National Science Foundation under Grant No. 2246187. Contact: <a href="mailto:rs5cq@mst.edu">rs5cq@mst.edu</a>.</footer>
+  </div>
+</main>
+<script>
+  (function () {
+    var btn = document.getElementById('copy-bib');
+    var text = document.getElementById('bibtex').textContent;
+    btn.addEventListener('click', function () {
+      function done(ok) {
+        btn.textContent = ok ? 'Copied' : 'Select and copy';
+        setTimeout(function () { btn.textContent = 'Copy BibTeX'; }, 1800);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+      } else { done(false); }
+    });
+  })();
+</script>
+</body>
+</html>
