@@ -22,7 +22,8 @@ A 50-dimensional function that only varies along 2 hidden directions:
 True
 """
 
+from ._asktell import AskTellOptimizer
 from ._minimize import OptimizeResult, maximize, minimize
 
-__all__ = ["minimize", "maximize", "OptimizeResult"]
-__version__ = "0.1.0"
+__all__ = ["minimize", "maximize", "AskTellOptimizer", "OptimizeResult"]
+__version__ = "0.2.0"
