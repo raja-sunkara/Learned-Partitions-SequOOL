@@ -1,0 +1,3 @@
+[submodule "HesBO"]
+	path = HesBO
+	url = https://github.com/aminnayebi/HesBO.git
