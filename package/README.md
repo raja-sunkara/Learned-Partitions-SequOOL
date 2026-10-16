@@ -45,6 +45,29 @@ res.history    # best value after each evaluation, for regret plots
 `maximize` has the same signature. `method="sequool"` runs plain SequOOL
 with axis-aligned trisection, as a baseline.
 
+### Ask/tell interface
+
+For tools that propose one point at a time and evaluate it elsewhere
+(a cluster job, a lab experiment, another optimization library):
+
+```python
+from learned_partitions import AskTellOptimizer
+
+opt = AskTellOptimizer(bounds=[(-1, 1)] * 50, budget=1000)
+while (x := opt.ask()) is not None:
+    opt.tell(x, f(x))       # evaluate however you like
+opt.result.x, opt.result.fun
+```
+
+It produces exactly the same sequence of points as `minimize` with the same
+arguments. `direction="maximize"` maximizes; `opt.close()` stops early.
+
+### Optuna
+
+[`integrations/optunahub`](../integrations/optunahub/samplers/learned_partitions)
+contains `LearnedPartitionSampler`, an Optuna sampler built on the ask/tell
+interface, packaged for the OptunaHub registry.
+
 ### Options
 
 | Argument | Default | Meaning |
