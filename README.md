@@ -3,6 +3,7 @@
 [![ICML 2025](https://img.shields.io/badge/ICML-2025-blue)](https://proceedings.mlr.press/v267/sunkara25a.html)
 [![arXiv](https://img.shields.io/badge/arXiv-2610.04039-b31b1b)](https://arxiv.org/abs/2610.04039)
 [![OpenReview](https://img.shields.io/badge/OpenReview-rA2P4H7Dep-8c1b13)](https://openreview.net/forum?id=rA2P4H7Dep)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/raja-sunkara/Learned-Partitions-SequOOL/blob/main/notebooks/demo.ipynb)
 
 Official code for **"Adaptive Partitioning Schemes for Optimistic Optimization"**
 by [Raja Sunkara](mailto:rs5cq@mst.edu) and Ardhendu Tripathy, *ICML 2025*.
@@ -57,6 +58,8 @@ from learned_partitions import minimize
 res = minimize(f, bounds=[(-1, 1)] * 50, budget=1000)
 res.x, res.fun, res.m   # best point, its value, learned subspace dimension
 ```
+
+**Try it in your browser:** the [Colab demo](https://colab.research.google.com/github/raja-sunkara/Learned-Partitions-SequOOL/blob/main/notebooks/demo.ipynb) runs both methods on a 20-D problem in about a minute, including an honest look at where learning the partition helps and where it does not.
 
 See [`package/README.md`](package/README.md) for options. The rest of this README covers
 reproducing the paper's experiments.
@@ -125,6 +128,7 @@ set `n_dim` ($d$) and `low_dim` ($m$).
 ## Repository layout
 
 ```
+notebooks/    demo.ipynb: Colab demo of the package
 package/      pip-installable `learned_partitions` (minimize / maximize API + tests)
 configs/      Hydra configs (run.yaml, per-function NN hyperparameters)
 scripts/      main.py entry point
