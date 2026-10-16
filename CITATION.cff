@@ -6,6 +6,7 @@ authors:
     given-names: Raja
   - family-names: Tripathy
     given-names: Ardhendu
+license: MIT
 repository-code: "https://github.com/raja-sunkara/Learned-Partitions-SequOOL"
 keywords:
   - black-box optimization
