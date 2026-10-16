@@ -43,7 +43,27 @@ keeps refitting the network and uses it to choose which direction to split next.
 
 ---
 
-## Installation
+## Use it in your own code
+
+A lightweight package (numpy + scipy only) wraps the method behind one call:
+
+```bash
+pip install "git+https://github.com/raja-sunkara/Learned-Partitions-SequOOL.git#subdirectory=package"
+```
+
+```python
+from learned_partitions import minimize
+
+res = minimize(f, bounds=[(-1, 1)] * 50, budget=1000)
+res.x, res.fun, res.m   # best point, its value, learned subspace dimension
+```
+
+See [`package/README.md`](package/README.md) for options. The rest of this README covers
+reproducing the paper's experiments.
+
+---
+
+## Installation (paper experiments)
 
 Requires **Python 3.10**. The HeSBO/REMBO baselines are pulled in as a git submodule,
 so clone with `--recursive`:
@@ -105,6 +125,7 @@ set `n_dim` ($d$) and `low_dim` ($m$).
 ## Repository layout
 
 ```
+package/      pip-installable `learned_partitions` (minimize / maximize API + tests)
 configs/      Hydra configs (run.yaml, per-function NN hyperparameters)
 scripts/      main.py entry point
 src/
