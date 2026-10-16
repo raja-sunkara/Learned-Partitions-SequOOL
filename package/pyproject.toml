@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learned-partitions"
+version = "0.1.0"
+description = "Black-box optimization with learned partitions: SequOOL on a learned low-dimensional subspace (ICML 2025)."
+readme = "README.md"
+license = "MIT"
+authors = [
+  { name = "Raja Sunkara" },
+  { name = "Ardhendu Tripathy" },
+]
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22", "scipy>=1.9"]
+keywords = ["black-box optimization", "derivative-free optimization", "optimistic optimization", "SequOOL", "high-dimensional optimization"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.optional-dependencies]
+nn = ["torch>=1.13"]
+test = ["pytest", "torch>=1.13"]
+
+[project.urls]
+Homepage = "https://github.com/raja-sunkara/Learned-Partitions-SequOOL"
+Paper = "https://proceedings.mlr.press/v267/sunkara25a.html"
+arXiv = "https://arxiv.org/abs/2610.04039"
+
+[tool.setuptools]
+packages = ["learned_partitions"]
