@@ -1,105 +1,145 @@
+# Adaptive Partitioning Schemes for Optimistic Optimization
 
-Source code and evaluation scripts for our <i>ICML 2025</i> paper:
+[![ICML 2025](https://img.shields.io/badge/ICML-2025-blue)](https://proceedings.mlr.press/v267/sunkara25a.html)
+[![arXiv](https://img.shields.io/badge/arXiv-2610.04039-b31b1b)](https://arxiv.org/abs/2610.04039)
+[![OpenReview](https://img.shields.io/badge/OpenReview-rA2P4H7Dep-8c1b13)](https://openreview.net/forum?id=rA2P4H7Dep)
 
-## Adaptive Partitioning Schemes for Optimistic Optimization
-[Link to paper]()<br>
-[arXiv]()
+Official code for **"Adaptive Partitioning Schemes for Optimistic Optimization"**
+by [Raja Sunkara](mailto:rs5cq@mst.edu) and Ardhendu Tripathy, *ICML 2025*.
 
-### Abstract
-Applications such as engineering design often require us to optimize a black-box function, i.e., a system whose inner processing is not analytically known and whose gradients are not available. Practitioners often have a fixed budget for the number of function evaluations and the performance of an optimization algorithm is measured by its simple regret. In this paper, we study the class of ``Optimistic Optimization'' algorithms for black-box optimization that use a partitioning scheme for the domain. We develop algorithms that learn a good partitioning scheme and use flexible surrogate models such as neural networks in the optimization procedure. For multi-index functions on an $m$-dimensional subspace within $d$ dimensions, our algorithm attains $\tilde{O}(n^{-\beta / d})$ regret, where $\beta = 1 + \frac{d-m}{2m-1}$, as opposed to $\tilde{O}(n^{-1/d})$ for SequOOL, a state-of-the-art optimistic optimization algorithm. We use our approach to improve the quality of Activation-aware Weight Quantization (AWQ) of the OPT-1.3B model, achieving $\sim10$\% improvement in performance relative to the best possible unquantized model.
+📄 [Paper (PMLR)](https://proceedings.mlr.press/v267/sunkara25a.html) ·
+[PDF](https://raw.githubusercontent.com/mlresearch/v267/main/assets/sunkara25a/sunkara25a.pdf) ·
+[arXiv](https://arxiv.org/abs/2610.04039) ·
+[ICML poster](https://icml.cc/virtual/2025/poster/43904) ·
+[Cite](#citation)
 
+---
 
+## TL;DR
 
+Partition-based black-box optimizers (DiRect, SOO, SequOOL) split the search space
+into axis-aligned boxes. That wastes evaluations when the function only varies along a
+few directions, and it scales badly with dimension.
 
-## 🛠️ Installation & Setup
+We **learn the partition instead of fixing it**: fit a small neural network to a few
+evaluations, read off the low-dimensional subspace that explains the function's
+variation, and run SequOOL on partitions built in that subspace. An interleaved variant
+keeps refitting the network and uses it to choose which direction to split next.
 
-This repository is compatible with **Python 3.10**. We recommend using a clean Conda environment to avoid dependency conflicts.
+- **Theory.** For multi-index functions $f(\mathbf{x}) = g(\mathbf{A}\mathbf{x})$ with an
+  $m$-dimensional subspace inside $d$ dimensions, the regret improves from
+  $\tilde O(n^{-1/\eta})$ (SequOOL) to $\tilde O(n^{-\beta/\eta})$ with
+  $\beta = 1 + \frac{d-m}{2m-1}$, even when the subspace is only estimated.
+- **Practice.** Gradient-free, works with any black-box `f(x)`, and competitive with
+  REMBO, HeSBO, RESOO, CMA-ES and DiRect on rotated BBOB-style benchmarks.
+- **New application.** Recasts LLM weight quantization (AWQ scale search on OPT-1.3B)
+  as a 72-dimensional black-box problem.
 
-### 1. Clone the repository
+| Optimizer | Partitioning | Regret on multi-index $f$ |
+|---|---|---|
+| SOO | fixed, axis-aligned | $\tilde O(n^{-1/\eta})$ |
+| SequOOL | fixed, axis-aligned | $\tilde O(n^{-1/\eta})$ |
+| **Ours** | **learned subspace + adaptive splits** | $\tilde O(n^{-\beta/\eta})$, $\beta > 1$ |
+
+---
+
+## Installation
+
+Requires **Python 3.10**. The HeSBO/REMBO baselines are pulled in as a git submodule,
+so clone with `--recursive`:
 
 ```bash
-git clone https://github.com/raja-sunkara/Learned-Partitions-SequOOL.git
+git clone --recursive https://github.com/raja-sunkara/Learned-Partitions-SequOOL.git
 cd Learned-Partitions-SequOOL
-```
 
-### 2. Create and activate a new Conda environment
-
-```bash
 conda create -n bbopt python=3.10 -y
 conda activate bbopt
-```
-
-### 3. Install the package and dependencies
-
-This project uses a `setup.py` file with pinned versions for compatibility:
-
-```bash
 pip install -e .
 ```
 
-This installs all required packages, including:
-
-- `numpy`, `scipy`, `pandas`, `matplotlib`
-- `torch`, `joblib`, `hydra-core`, `hydra-joblib-launcher`, `omegaconf`
-- `gpy`, `pyDOE`, `cvxpy`, `shapely`
-- `scikit-learn`, `scikit-optimize`, `bayesian-optimization`
-- `cma`, `ray`, `tqdm`
-
-
+Already cloned without `--recursive`? Run `git submodule update --init`.
 
 ---
 
-## 🚀 Running Experiments
+## Quick start
 
-To run a single optimization:
-
-```bash
-python3 scripts/main.py method=METHOD_NAME function_name=FUNCTION_NAME
-```
-
-Example:
+Every run is configured with [Hydra](https://hydra.cc); defaults live in `configs/run.yaml`.
 
 ```bash
-python3 scripts/main.py method=sequool function_name=rastrigin_rotated
+# Our method (SequOOL on a learned subspace) on a 5-D Rastrigin with a 2-D active subspace
+python3 scripts/main.py method=learned_subspace function_name=rastrigin_rotated n_dim=5 low_dim=2
+
+# Baseline SequOOL on the same problem
+python3 scripts/main.py method=sequool function_name=rastrigin_rotated n_dim=5 low_dim=2
+
+# Several methods in parallel
+python3 scripts/main.py --multirun method=learned_subspace,sequool,resoo,rembo function_name=branin
 ```
 
-To run multiple methods in parallel using Hydra:
+Results and logs are written to `experiments/hydra_outputs/` (single runs) or
+`multirun/` (sweeps).
 
-```bash
-python3 scripts/main.py --multirun method=rembo,hesbo,direct function_name=branin
-```
+### Methods (`method=`)
 
-Hydra will create output logs and results under `experiments/hydra_outputs/`.
+| Key | Algorithm |
+|---|---|
+| `learned_subspace` | **Ours:** two-stage, learned subspace + SequOOL (Alg. 1) |
+| `dimension_reduction_and_look_ahead` | **Ours:** interleaved learning + lookahead splits (Alg. 2) |
+| `all_dimensions_look_ahead` | **Ours:** lookahead direction selection in the full space |
+| `subspace_random_search` | Random search on the learned subspace |
+| `sequool`, `soo`, `resoo` | Optimistic optimization baselines |
+| `direct`, `dual_annealing`, `cma_es`, `random_search` | Classic derivative-free baselines |
+| `bayesian_opt`, `rembo`, `hesbo` | Bayesian optimization baselines |
+
+### Benchmark functions (`function_name=`)
+
+`sphere_rotated`, `rastrigin_rotated`, `ellipsoid_rotated`, `different_powers`,
+`rosenbrock`, `styblinski_tang`, `hartmann6`, `branin`, `sharp_ridge`,
+`attractive_sector`, `step_ellipsoid`, `custom_f1`, and more in
+`src/utils/coco_functions.py`. Each is embedded as a multi-index function
+$f(\mathbf{x}) = g(\mathbf{A}\mathbf{x})$ with a random orthonormal $\mathbf{A}$;
+set `n_dim` ($d$) and `low_dim` ($m$).
 
 ---
 
-## 🧪 Supported Algorithms
+## Repository layout
 
-- Direct Search
-- CMA-ES
-- Dual Annealing
-- Random Search
-- Bayesian Optimization
-- REMBO
-- HESBO
-- SOO / RESOO
-- SequOOL
-- SequOOL on learned subspace
+```
+configs/      Hydra configs (run.yaml, per-function NN hyperparameters)
+scripts/      main.py entry point
+src/
+  sequool.py, soo.py, resoo.py           optimistic optimization algorithms
+  dimension_reduction*.py                learned-subspace methods (ours)
+  all_dimensions_look_ahead.py           lookahead direction selection (ours)
+  benchmarks.py                          DiRect, CMA-ES, BO, REMBO, ... wrappers
+  utils/                                 test functions, NN training, plotting
+HesBO/        submodule: https://github.com/aminnayebi/HesBO
+```
 
 ---
 
+## Citation
 
+If you use this code or build on the paper, please cite:
 
+```bibtex
+@InProceedings{pmlr-v267-sunkara25a,
+  title     = {Adaptive Partitioning Schemes for Optimistic Optimization},
+  author    = {Sunkara, Raja and Tripathy, Ardhendu},
+  booktitle = {Proceedings of the 42nd International Conference on Machine Learning},
+  pages     = {58029--58064},
+  year      = {2025},
+  volume    = {267},
+  series    = {Proceedings of Machine Learning Research},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v267/sunkara25a.html}
+}
+```
 
+## Acknowledgements
 
+Supported by the National Science Foundation under Grant No. 2246187.
+The HeSBO and REMBO baselines use the code of
+[Nayebi et al. (2019)](https://github.com/aminnayebi/HesBO).
 
-
-
-
-
-
-
-
-
-
-
+Questions or issues: open a GitHub issue or email rs5cq@mst.edu.

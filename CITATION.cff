@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "Learned-Partitions-SequOOL"
+authors:
+  - family-names: Sunkara
+    given-names: Raja
+  - family-names: Tripathy
+    given-names: Ardhendu
+repository-code: "https://github.com/raja-sunkara/Learned-Partitions-SequOOL"
+keywords:
+  - black-box optimization
+  - optimistic optimization
+  - derivative-free optimization
+  - high-dimensional optimization
+  - SequOOL
+preferred-citation:
+  type: conference-paper
+  title: "Adaptive Partitioning Schemes for Optimistic Optimization"
+  authors:
+    - family-names: Sunkara
+      given-names: Raja
+    - family-names: Tripathy
+      given-names: Ardhendu
+  collection-title: "Proceedings of the 42nd International Conference on Machine Learning"
+  collection-type: proceedings
+  conference:
+    name: "International Conference on Machine Learning (ICML)"
+  publisher:
+    name: PMLR
+  volume: 267
+  start: 58029
+  end: 58064
+  year: 2025
+  url: "https://proceedings.mlr.press/v267/sunkara25a.html"
