@@ -95,19 +95,22 @@ def nn_subspace(
         lr=lr,
     )
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
-    for _ in range(epochs):
-        opt.zero_grad()
-        loss = torch.nn.functional.mse_loss(model(x), t)
-        loss.backward()
-        opt.step()
-        sched.step()
+    # The caller may have switched gradients off globally (common in inference
+    # code); training here needs them, so turn them on locally.
+    with torch.enable_grad():
+        for _ in range(epochs):
+            opt.zero_grad()
+            loss = torch.nn.functional.mse_loss(model(x), t)
+            loss.backward()
+            opt.step()
+            sched.step()
 
-    if readout == "weights":
-        matrix = first.weight.detach().numpy()  # hidden x d
-    else:
-        xg = x.clone().requires_grad_(True)
-        model(xg).sum().backward()
-        matrix = xg.grad.detach().numpy()  # n x d
+        if readout == "weights":
+            matrix = first.weight.detach().numpy()  # hidden x d
+        else:
+            xg = x.clone().requires_grad_(True)
+            model(xg).sum().backward()
+            matrix = xg.grad.detach().numpy()  # n x d
     return top_directions(matrix, variance, m)
 
 
